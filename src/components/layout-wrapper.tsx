@@ -6,7 +6,6 @@ import { Header } from "./header";
 import { MobileNav } from "./mobile-nav";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { cn } from "@/lib/utils";
 
 interface LayoutWrapperProps {
   children: React.ReactNode;

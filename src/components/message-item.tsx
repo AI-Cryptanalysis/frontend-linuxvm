@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { ShieldCheck, AlertTriangle, User, Activity, Flame, ShieldAlert } from "lucide-react";
+import { ShieldCheck, Activity, ShieldAlert } from "lucide-react";
 
 export type Message = {
   id: string;
