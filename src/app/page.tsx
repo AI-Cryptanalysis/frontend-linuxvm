@@ -34,7 +34,7 @@ export default function Home() {
 
     try {
       // Connect to the backend from env vars
-      const response = await fetch(process.env.BACKEND_URL as string, {
+      const response = await fetch(process.env.NEXT_PUBLIC_BACKEND_URL + "assistant/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
