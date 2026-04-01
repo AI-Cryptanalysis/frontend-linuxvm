@@ -33,8 +33,8 @@ export default function Home() {
     setIsTyping(true);
 
     try {
-      // Connect to the backend on Port 5070 (unrestricted in Firefox)
-      const response = await fetch("http://localhost:5070/assistant/chat", {
+      // Connect to the backend from env vars
+      const response = await fetch(process.env.BACKEND_URL as string, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
