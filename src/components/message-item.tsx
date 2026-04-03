@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { ShieldCheck, AlertTriangle, User, Activity, Flame, ShieldAlert } from "lucide-react";
+import { ShieldCheck, AlertTriangle, User, Activity, Flame, ShieldAlert, Terminal as TerminalIcon } from "lucide-react";
 
 export type Message = {
   id: string;
@@ -19,62 +19,107 @@ export function MessageItem({ message }: { message: Message }) {
   const renderContent = (content: string) => {
     if (!isAI) return <p className="font-sans text-base leading-relaxed">{content}</p>;
 
-    const sections = content.split(/\*\*(.*?)\*\*/g);
-    return sections.map((part, i) => {
-      // Tactical Score HUD
-      if (part === "SECURITY_SCORE") {
-        const scoreMatch = sections[i + 1]?.match(/\d+/);
-        const score = scoreMatch ? parseInt(scoreMatch[0]) : 100;
+    // 1. Process block elements first (Log blocks from tool output)
+    const blockParts = content.split(/(```[\s\S]*?```)/g);
+    
+    return blockParts.map((blockPart, blockIndex) => {
+      // Handle the terminal/tool output block
+      if (blockPart.startsWith("```") && blockPart.endsWith("```")) {
+        const commandText = blockPart.replace(/```/g, "").trim();
+        if (!commandText) return null;
         return (
-          <div key={i} className="my-4 p-4 rounded-xl bg-surface-container-highest border border-white/10 flex items-center gap-4 galactic-shadow">
-            <div className="relative w-16 h-16 flex items-center justify-center">
-               <svg className="w-full h-full transform -rotate-90">
-                 <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-white/5" />
-                 <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="4" fill="transparent" 
-                         strokeDasharray={175} strokeDashoffset={175 - (175 * score) / 100}
-                         className={cn(score > 70 ? "text-tertiary" : score > 40 ? "text-warning" : "text-destructive")} />
-               </svg>
-               <span className="absolute text-sm font-bold">{score}</span>
-            </div>
-            <div>
-              <h4 className="text-[10px] font-bold uppercase tracking-widest opacity-50">Global Integrity Score</h4>
-              <p className="text-lg font-bold tracking-tighter">SURVEILLANCE_STATUS_OK</p>
-            </div>
+          <div key={`block-${blockIndex}`} className="my-4 overflow-hidden rounded-xl border border-white/10 bg-[#0a0a0f] shadow-lg">
+             <div className="flex items-center gap-2 bg-white/5 px-4 py-2 border-b border-white/5">
+                <TerminalIcon className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Terminal Output</span>
+             </div>
+             <pre className="p-4 text-[11px] leading-relaxed font-mono whitespace-pre-wrap overflow-x-auto text-[#33ff99]/80">
+                {commandText}
+             </pre>
           </div>
         );
       }
 
-      // Vulnerability Table HUD
-      if (part === "VULNERABILITIES") {
-        return <div key={i} className="mt-4 mb-2 text-xs font-bold uppercase tracking-widest text-destructive flex items-center gap-2"><ShieldAlert className="w-4 h-4" /> Tactical Threat List</div>;
-      }
+      // 2. Process inline elements in regular text parts
+      const sections = blockPart.split(/\*\*(.*?)\*\*/g);
+      return sections.map((part, i) => {
+        // Tactical Score HUD
+        if (part === "SECURITY_SCORE") {
+          const scoreMatch = sections[i + 1]?.match(/\d+/);
+          const score = scoreMatch ? parseInt(scoreMatch[0]) : 100;
+          return (
+            <div key={`${blockIndex}-${i}`} className="my-4 p-4 rounded-xl bg-surface-container-highest border border-white/10 flex items-center gap-4 galactic-shadow">
+              <div className="relative w-16 h-16 flex items-center justify-center">
+                 <svg className="w-full h-full transform -rotate-90">
+                   <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-white/5" />
+                   <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="4" fill="transparent" 
+                           strokeDasharray={175} strokeDashoffset={175 - (175 * score) / 100}
+                           className={cn(score > 70 ? "text-tertiary" : score > 40 ? "text-warning" : "text-destructive")} />
+                 </svg>
+                 <span className="absolute text-sm font-bold">{score}</span>
+              </div>
+              <div>
+                <h4 className="text-[10px] font-bold uppercase tracking-widest opacity-50">Global Integrity Score</h4>
+                <p className="text-lg font-bold tracking-tighter">SURVEILLANCE_STATUS_OK</p>
+              </div>
+            </div>
+          );
+        }
 
-      // Bold sections
-      if (i % 2 !== 0) {
-        return <span key={i} className="font-bold text-foreground/90 block mt-4 mb-1 uppercase tracking-wider text-[11px]">{part}</span>;
-      }
+        // Vulnerability Table HUD
+        if (part === "VULNERABILITIES") {
+          return <div key={`${blockIndex}-${i}`} className="mt-4 mb-2 text-xs font-bold uppercase tracking-widest text-destructive flex items-center gap-2"><ShieldAlert className="w-4 h-4" /> Tactical Threat List</div>;
+        }
 
-      // Normal text and tables (very basic split)
-      if (part.includes("|")) {
-        const rows = part.split("\n").filter(r => r.includes("|") && !r.includes("---"));
-        return (
-          <div key={i} className="overflow-x-auto my-4 rounded-lg border border-white/5 bg-black/5">
-            <table className="w-full text-left text-xs">
-              <tbody className="divide-y divide-white/5">
-                {rows.map((row, ri) => (
-                  <tr key={ri} className="hover:bg-white/5 transition-colors">
-                    {row.split("|").filter(c => c.trim()).map((cell, ci) => (
-                      <td key={ci} className="p-3 opacity-80">{cell.trim()}</td>
+        // Bold sections
+        if (i % 2 !== 0) {
+          return <span key={`${blockIndex}-${i}`} className="font-bold text-foreground/90 block mt-4 mb-1 uppercase tracking-wider text-[11px]">{part}</span>;
+        }
+
+        // Processing normal text chunks (part)
+        // 3. Tables
+        if (part.includes("|")) {
+          const rows = part.split("\n").filter(r => r.includes("|") && !r.includes("---"));
+          // If we actually found table rows
+          if (rows.length > 0) {
+            return (
+              <div key={`${blockIndex}-${i}`} className="overflow-x-auto my-4 rounded-lg border border-white/5 bg-black/5">
+                <table className="w-full text-left text-xs">
+                  <tbody className="divide-y divide-white/5">
+                    {rows.map((row, ri) => (
+                      <tr key={ri} className="hover:bg-white/5 transition-colors">
+                        {row.split("|").filter(c => c.trim()).map((cell, ci) => (
+                          <td key={ci} className="p-3 opacity-80">{cell.trim()}</td>
+                        ))}
+                      </tr>
                     ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        );
-      }
+                  </tbody>
+                </table>
+              </div>
+            );
+          }
+        }
 
-      return <span key={i} className="opacity-80 block mb-2">{part}</span>;
+        // 4. Status processing (lines starting and ending with _, e.g., _🤖 text..._)
+        const lines = part.split("\n");
+        return (
+          <React.Fragment key={`${blockIndex}-${i}`}>
+            {lines.map((line, lineIndex) => {
+              const trimmed = line.trim();
+              if (trimmed.startsWith("_") && trimmed.endsWith("_") && trimmed.length > 2) {
+                const italicText = trimmed.substring(1, trimmed.length - 1);
+                return (
+                  <div key={lineIndex} className="text-xs italic text-muted-foreground opacity-60 my-1 font-sans flex items-center gap-2">
+                     <div className="w-1 h-1 rounded-full bg-primary/40 animate-pulse" />
+                     {italicText}
+                  </div>
+                );
+              }
+              return <span key={lineIndex} className="opacity-80 block mb-2">{line}</span>;
+            })}
+          </React.Fragment>
+        );
+      });
     });
   };
 
