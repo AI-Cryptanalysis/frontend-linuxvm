@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageItem, type Message } from "./message-item";
 
@@ -53,12 +54,33 @@ export function ChatLayout({ messages, isTyping }: { messages: Message[], isTypi
           
           {isTyping && (
             <div className="flex justify-start mb-8 animate-in fade-in duration-500">
-               <div className="w-10 h-10 rounded-2xl bg-surface-container-high flex items-center justify-center mr-5">
-                  <div className="w-1.5 h-1.5 pulse-dot" />
+               <div className="w-10 h-10 rounded-2xl flex items-center justify-center galactic-shadow shadow-lg shadow-primary/20 overflow-hidden bg-black/5 mr-5 flex-shrink-0 mt-1">
+                 <Image src="/logo.png" alt="ASPIS" width={40} height={40} className="w-full h-full object-contain opacity-70 animate-pulse" />
                </div>
-               <div className="bg-white/50 backdrop-blur-md p-6 rounded-[1.25rem] text-muted-foreground text-sm font-sans italic flex items-center gap-3 border border-white/10">
-                 <div className="w-24 h-2 bg-muted-foreground/10 rounded animate-pulse" />
-                 ASPIS is synthesizing response...
+               <div className="bg-white/40 backdrop-blur-3xl p-6 rounded-[1.25rem] flex flex-col gap-4 border border-white/10 w-full max-w-[75%] ghost-border relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12 animate-[shimmer_2s_infinite]" />
+                  <div className="flex items-center gap-3">
+                    <span className="w-2 h-2 rounded-full pulse-dot bg-primary" />
+                    <span className="text-xs uppercase tracking-widest font-bold text-muted-foreground">ASPIS Core Processing</span>
+                  </div>
+                  <div className="space-y-3 mt-2">
+                    <div className="w-3/4 h-3 bg-muted-foreground/10 rounded-md" />
+                    <div className="w-1/2 h-3 bg-muted-foreground/10 rounded-md" />
+                    <div className="w-5/6 h-3 bg-muted-foreground/10 rounded-md" />
+                  </div>
+                  <div className="mt-4 border border-white/5 rounded-xl p-4 bg-black/5 space-y-4">
+                    <div className="w-1/3 h-4 bg-muted-foreground/15 rounded-md mb-2" />
+                    <div className="flex gap-4">
+                      <div className="w-1/4 h-3 bg-muted-foreground/10 rounded-md" />
+                      <div className="w-1/4 h-3 bg-muted-foreground/10 rounded-md" />
+                      <div className="w-1/4 h-3 bg-muted-foreground/10 rounded-md" />
+                    </div>
+                    <div className="w-full h-px bg-white/5 my-2" />
+                    <div className="flex gap-4">
+                      <div className="w-1/4 h-3 bg-muted-foreground/10 rounded-md" />
+                      <div className="w-2/4 h-3 bg-muted-foreground/10 rounded-md" />
+                    </div>
+                  </div>
                </div>
             </div>
           )}

@@ -3,7 +3,9 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
-import { ShieldCheck, AlertTriangle, User, Activity, Flame, ShieldAlert, Terminal as TerminalIcon } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { ShieldCheck, AlertTriangle, User, Activity, Flame, ShieldAlert, Terminal as TerminalIcon, Copy, Check } from "lucide-react";
 
 export type Message = {
   id: string;
@@ -13,6 +15,47 @@ export type Message = {
   status?: "secure" | "warning" | "alert";
 };
 
+function TerminalCodeBlock({ children, inline, className, ...props }: any) {
+  const [copied, setCopied] = React.useState(false);
+  const match = /language-(\w+)/.exec(className || "");
+  const isTerminal = !inline;
+
+  if (!isTerminal) {
+    return <code className="bg-white/10 px-1.5 py-0.5 rounded text-xs font-mono text-primary" {...props}>{children}</code>;
+  }
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(String(children).replace(/\n$/, ""));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="my-6 overflow-hidden rounded-xl border border-white/10 bg-[#0a0a0f] shadow-lg shadow-black/40 group relative">
+      <div className="flex items-center justify-between bg-white/5 px-4 py-3 border-b border-white/5">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-[#ff5f56]" />
+          <div className="w-3 h-3 rounded-full bg-[#ffbd2e]" />
+          <div className="w-3 h-3 rounded-full bg-[#27c93f]" />
+        </div>
+        <div className="flex items-center gap-2">
+          <TerminalIcon className="w-3.5 h-3.5 text-muted-foreground" />
+          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mr-8">Shell_Output</span>
+        </div>
+      </div>
+      <button 
+        onClick={handleCopy}
+        className="absolute top-2 right-4 p-1.5 rounded-md bg-white/10 text-white/60 hover:text-white hover:bg-white/20 transition-all opacity-0 group-hover:opacity-100"
+      >
+        {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
+      </button>
+      <pre className="p-4 text-[12px] leading-relaxed font-mono whitespace-pre-wrap overflow-x-auto text-[#33ff99]/80 custom-scrollbar">
+        <code {...props}>{children}</code>
+      </pre>
+    </div>
+  );
+}
+
 export function MessageItem({ message }: { message: Message }) {
   const isAI = message.role === "assistant";
 
@@ -20,108 +63,33 @@ export function MessageItem({ message }: { message: Message }) {
   const renderContent = (content: string) => {
     if (!isAI) return <p className="font-sans text-[15px] font-medium leading-relaxed text-foreground/90">{content}</p>;
 
-    // 1. Process block elements first (Log blocks from tool output)
-    const blockParts = content.split(/(```[\s\S]*?```)/g);
-    
-    return blockParts.map((blockPart, blockIndex) => {
-      // Handle the terminal/tool output block
-      if (blockPart.startsWith("```") && blockPart.endsWith("```")) {
-        const commandText = blockPart.replace(/```/g, "").trim();
-        if (!commandText) return null;
-        return (
-          <div key={`block-${blockIndex}`} className="my-4 overflow-hidden rounded-xl border border-white/10 bg-[#0a0a0f] shadow-lg">
-             <div className="flex items-center gap-2 bg-white/5 px-4 py-2 border-b border-white/5">
-                <TerminalIcon className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Terminal Output</span>
-             </div>
-             <pre className="p-4 text-[11px] leading-relaxed font-mono whitespace-pre-wrap overflow-x-auto text-[#33ff99]/80">
-                {commandText}
-             </pre>
-          </div>
-        );
-      }
-
-      // 2. Process inline elements in regular text parts
-      const sections = blockPart.split(/\*\*(.*?)\*\*/g);
-      return sections.map((part, i) => {
-        // Tactical Score HUD
-        if (part === "SECURITY_SCORE") {
-          const scoreMatch = sections[i + 1]?.match(/\d+/);
-          const score = scoreMatch ? parseInt(scoreMatch[0]) : 100;
-          return (
-            <div key={`${blockIndex}-${i}`} className="my-4 p-4 rounded-xl bg-surface-container-highest border border-white/10 flex items-center gap-4 galactic-shadow">
-              <div className="relative w-16 h-16 flex items-center justify-center">
-                 <svg className="w-full h-full transform -rotate-90">
-                   <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-white/5" />
-                   <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="4" fill="transparent" 
-                           strokeDasharray={175} strokeDashoffset={175 - (175 * score) / 100}
-                           className={cn(score > 70 ? "text-tertiary" : score > 40 ? "text-warning" : "text-destructive")} />
-                 </svg>
-                 <span className="absolute text-sm font-bold">{score}</span>
+    return (
+      <div className="text-[15px] font-medium text-foreground/90 leading-relaxed tracking-wide space-y-4">
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          components={{
+            table: ({ node, ...props }) => (
+              <div className="overflow-x-auto my-6 rounded-xl border border-white/5 bg-black/5 custom-scrollbar">
+                <table className="w-full text-left text-sm" {...props} />
               </div>
-              <div>
-                <h4 className="text-[10px] font-bold uppercase tracking-widest opacity-50">Global Integrity Score</h4>
-                <p className="text-lg font-bold tracking-tighter">SURVEILLANCE_STATUS_OK</p>
+            ),
+            thead: ({ node, ...props }) => <thead className="bg-white/5" {...props} />,
+            th: ({ node, ...props }) => <th className="p-4 font-bold border-b border-white/10" {...props} />,
+            td: ({ node, ...props }) => <td className="p-4 opacity-80 border-b border-white/5" {...props} />,
+            strong: ({ node, ...props }) => <strong className="font-bold text-foreground" {...props} />,
+            em: ({ node, children, ...props }) => (
+              <div className="text-xs italic text-muted-foreground opacity-60 my-2 font-sans flex items-center gap-2">
+                 <div className="w-1.5 h-1.5 rounded-full bg-primary/40 animate-pulse flex-shrink-0" />
+                 <span {...props}>{children}</span>
               </div>
-            </div>
-          );
-        }
-
-        // Vulnerability Table HUD
-        if (part === "VULNERABILITIES") {
-          return <div key={`${blockIndex}-${i}`} className="mt-4 mb-2 text-xs font-bold uppercase tracking-widest text-destructive flex items-center gap-2"><ShieldAlert className="w-4 h-4" /> Tactical Threat List</div>;
-        }
-
-        // Bold sections
-        if (i % 2 !== 0) {
-          return <span key={`${blockIndex}-${i}`} className="font-bold text-foreground/90 block mt-4 mb-1 uppercase tracking-wider text-[11px]">{part}</span>;
-        }
-
-        // Processing normal text chunks (part)
-        // 3. Tables
-        if (part.includes("|")) {
-          const rows = part.split("\n").filter(r => r.includes("|") && !r.includes("---"));
-          // If we actually found table rows
-          if (rows.length > 0) {
-            return (
-              <div key={`${blockIndex}-${i}`} className="overflow-x-auto my-4 rounded-lg border border-white/5 bg-black/5">
-                <table className="w-full text-left text-xs">
-                  <tbody className="divide-y divide-white/5">
-                    {rows.map((row, ri) => (
-                      <tr key={ri} className="hover:bg-white/5 transition-colors">
-                        {row.split("|").filter(c => c.trim()).map((cell, ci) => (
-                          <td key={ci} className="p-3 opacity-80">{cell.trim()}</td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            );
-          }
-        }
-
-        // 4. Status processing (lines starting and ending with _, e.g., _🤖 text..._)
-        const lines = part.split("\n");
-        return (
-          <React.Fragment key={`${blockIndex}-${i}`}>
-            {lines.map((line, lineIndex) => {
-              const trimmed = line.trim();
-              if (trimmed.startsWith("_") && trimmed.endsWith("_") && trimmed.length > 2) {
-                const italicText = trimmed.substring(1, trimmed.length - 1);
-                return (
-                  <div key={lineIndex} className="text-xs italic text-muted-foreground opacity-60 my-1 font-sans flex items-center gap-2">
-                     <div className="w-1 h-1 rounded-full bg-primary/40 animate-pulse" />
-                     {italicText}
-                  </div>
-                );
-              }
-              return <span key={lineIndex} className="text-[15px] font-medium text-foreground/90 block mb-2 leading-relaxed tracking-wide">{line}</span>;
-            })}
-          </React.Fragment>
-        );
-      });
-    });
+            ),
+            code: TerminalCodeBlock
+          }}
+        >
+          {content}
+        </ReactMarkdown>
+      </div>
+    );
   };
 
   return (

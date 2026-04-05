@@ -57,7 +57,6 @@ export function useScan() {
     // Dynamic import: socket.io-client is never loaded during SSR/server render
     import('socket.io-client').then(({ io }) => {
       const socket = io(BACKEND_URL, {
-        transports: ['websocket', 'polling'], // try WS first, fall back to polling
         autoConnect: true,
         reconnectionAttempts: 5,
         timeout: 10000,
