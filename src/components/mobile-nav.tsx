@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { LayoutDashboard, MessageSquare, Plus, Activity, User, LucideIcon } from "lucide-react";
+import { LayoutDashboard, MessageSquare, Plus, Activity, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function MobileNav() {
@@ -26,7 +26,7 @@ export function MobileNav() {
   );
 }
 
-function NavButton({ icon: Icon, active }: { icon: LucideIcon; active?: boolean }) {
+function NavButton({ icon: Icon, active }: { icon: any; active?: boolean }) {
   return (
     <button className={cn(
       "w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 relative",
