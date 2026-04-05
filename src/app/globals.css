@@ -144,3 +144,8 @@
 .galactic-shadow {
   box-shadow: 0 0 60px 0 rgba(83, 8, 231, 0.06);
 }
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}

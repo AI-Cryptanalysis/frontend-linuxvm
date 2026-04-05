@@ -47,12 +47,12 @@ export function Sidebar({ collapsed, setCollapsed }: { collapsed: boolean; setCo
       )}
     >
       <div className="p-6 flex items-center gap-3 flex-shrink-0">
-        <div className="w-10 h-10 btn-luminous rounded-lg flex items-center justify-center shadow-lg shadow-primary/20">
-          <Shield className="text-white w-6 h-6" />
+        <div className="w-10 h-10 overflow-hidden rounded-lg flex items-center justify-center shadow-lg shadow-primary/20 bg-surface-container-high border border-white/5">
+          <img src="/logo.png" alt="ASPIS Logo" className="w-full h-full object-contain p-1" />
         </div>
         {!collapsed && (
-          <span className="font-display text-xl font-bold tracking-tight text-foreground">
-            Luminous<span className="text-primary font-light">Guardian</span>
+          <span className="font-display text-2xl font-bold tracking-tighter text-foreground uppercase italic leading-none">
+            ASP<span className="text-primary">IS</span>
           </span>
         )}
       </div>

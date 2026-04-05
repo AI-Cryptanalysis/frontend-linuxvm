@@ -10,10 +10,11 @@ const spaceGrotesk = Space_Grotesk({
 const manrope = Manrope({
   subsets: ["latin"],
   variable: "--font-manrope",
+  weight: ["400", "500", "600", "700", "800"],
 });
 
 export const metadata: Metadata = {
-  title: "AICry Dashboard | The Synthetic Sentinel",
+  title: "ASPIS | Neural Security Interface",
   description: "Advanced tactical AI interface for high-precision monitoring.",
 };
 

@@ -1,8 +1,40 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { ShieldCheck, Activity, ShieldAlert } from "lucide-react";
+import { Activity } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+
+// ─── Sub-components ──────────────────────────────────────────────────────────
+
+const TerminalCodeBlock = ({ node, inline, className, children, ...props }: any) => {
+  const match = /language-(\w+)/.exec(className || "");
+  return !inline ? (
+    <div className="my-6 rounded-xl overflow-hidden border border-white/10 bg-[#020204] galactic-shadow group border-l-4 border-l-tertiary/50">
+      <div className="flex items-center justify-between px-4 py-2 bg-white/5 border-b border-white/5">
+        <div className="flex gap-1.5">
+          <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f56]" />
+          <div className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]" />
+          <div className="w-2.5 h-2.5 rounded-full bg-[#27c93f]" />
+        </div>
+        <span className="text-[10px] font-bold uppercase tracking-widest text-white/40 group-hover:text-tertiary/80 transition-colors font-mono">
+          SYSTEM_DECRYPTOR_v4.2 // STREAMING...
+        </span>
+      </div>
+      <pre className="p-5 overflow-x-auto custom-scrollbar bg-black/40">
+        <code className={cn("text-[13px] leading-relaxed font-mono text-[#00ff9d] drop-shadow-[0_0_8px_rgba(0,255,157,0.3)]", className)} {...props}>
+          {children}
+        </code>
+      </pre>
+    </div>
+  ) : (
+    <code className="px-1.5 py-0.5 rounded-md bg-tertiary/10 font-mono text-xs text-tertiary border border-tertiary/20" {...props}>
+      {children}
+    </code>
+  );
+};
 
 export type Message = {
   id: string;
@@ -15,81 +47,50 @@ export type Message = {
 export function MessageItem({ message }: { message: Message }) {
   const isAI = message.role === "assistant";
 
-  // Helper to parse tactical sections
   const renderContent = (content: string) => {
-    if (!isAI) return <p className="font-sans text-base leading-relaxed">{content}</p>;
+    if (!isAI) return <p className="font-sans text-base leading-relaxed font-medium">{content}</p>;
 
-    const sections = content.split(/\*\*(.*?)\*\*/g);
-    return sections.map((part, i) => {
-      // Tactical Score HUD
-      if (part === "SECURITY_SCORE") {
-        const scoreMatch = sections[i + 1]?.match(/\d+/);
-        const score = scoreMatch ? parseInt(scoreMatch[0]) : 100;
-        return (
-          <div key={i} className="my-4 p-4 rounded-xl bg-surface-container-highest border border-white/10 flex items-center gap-4 galactic-shadow">
-            <div className="relative w-16 h-16 flex items-center justify-center">
-               <svg className="w-full h-full transform -rotate-90">
-                 <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-white/5" />
-                 <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="4" fill="transparent" 
-                         strokeDasharray={175} strokeDashoffset={175 - (175 * score) / 100}
-                         className={cn(score > 70 ? "text-tertiary" : score > 40 ? "text-warning" : "text-destructive")} />
-               </svg>
-               <span className="absolute text-sm font-bold">{score}</span>
-            </div>
-            <div>
-              <h4 className="text-[10px] font-bold uppercase tracking-widest opacity-50">Global Integrity Score</h4>
-              <p className="text-lg font-bold tracking-tighter">SURVEILLANCE_STATUS_OK</p>
-            </div>
-          </div>
-        );
-      }
-
-      // Vulnerability Table HUD
-      if (part === "VULNERABILITIES") {
-        return <div key={i} className="mt-4 mb-2 text-xs font-bold uppercase tracking-widest text-destructive flex items-center gap-2"><ShieldAlert className="w-4 h-4" /> Tactical Threat List</div>;
-      }
-
-      // Bold sections
-      if (i % 2 !== 0) {
-        return <span key={i} className="font-bold text-foreground/90 block mt-4 mb-1 uppercase tracking-wider text-[11px]">{part}</span>;
-      }
-
-      // Normal text and tables (very basic split)
-      if (part.includes("|")) {
-        const rows = part.split("\n").filter(r => r.includes("|") && !r.includes("---"));
-        return (
-          <div key={i} className="overflow-x-auto my-4 rounded-lg border border-white/5 bg-black/5">
-            <table className="w-full text-left text-xs">
-              <tbody className="divide-y divide-white/5">
-                {rows.map((row, ri) => (
-                  <tr key={ri} className="hover:bg-white/5 transition-colors">
-                    {row.split("|").filter(c => c.trim()).map((cell, ci) => (
-                      <td key={ci} className="p-3 opacity-80">{cell.trim()}</td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        );
-      }
-
-      return <span key={i} className="opacity-80 block mb-2">{part}</span>;
-    });
+    return (
+      <div className="text-[15px] font-semibold text-foreground/90 leading-relaxed tracking-wide space-y-4">
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          components={{
+            table: ({ node, ...props }) => (
+              <div className="overflow-x-auto my-6 rounded-xl border border-white/5 bg-black/5 custom-scrollbar">
+                <table className="w-full text-left text-sm" {...props} />
+              </div>
+            ),
+            thead: ({ node, ...props }) => <thead className="bg-white/5" {...props} />,
+            th: ({ node, ...props }) => <th className="p-4 font-bold border-b border-white/10" {...props} />,
+            td: ({ node, ...props }) => <td className="p-4 opacity-80 border-b border-white/5" {...props} />,
+            strong: ({ node, ...props }) => <strong className="font-bold text-foreground" {...props} />,
+            em: ({ node, children, ...props }) => (
+              <span className="text-xs italic text-muted-foreground opacity-60 my-2 font-sans inline-flex items-center gap-2">
+                 <span className="w-1.5 h-1.5 rounded-full bg-primary/40 animate-pulse flex-shrink-0" />
+                 <span {...props}>{children}</span>
+              </span>
+            ),
+            code: TerminalCodeBlock
+          }}
+        >
+          {content}
+        </ReactMarkdown>
+      </div>
+    );
   };
 
   return (
     <div className={cn("flex w-full gap-5 mb-10 transition-all duration-500 animate-in fade-in", isAI ? "justify-start" : "justify-end pr-8")}>
       {isAI && (
         <div className="flex-shrink-0 mt-1">
-          <div className="w-10 h-10 rounded-2xl btn-luminous flex items-center justify-center galactic-shadow">
-            <ShieldCheck className="w-6 h-6 text-white" />
+          <div className="w-10 h-10 rounded-2xl flex items-center justify-center galactic-shadow shadow-lg shadow-primary/20 overflow-hidden bg-white/10 backdrop-blur-md border border-white/10">
+            <Image src="/logo.png" alt="ASPIS" width={40} height={40} className="w-full h-full object-contain" />
           </div>
         </div>
       )}
 
-      <div className={cn("flex flex-col gap-2 max-w-[75%]", !isAI && "items-end")}>
-        <div className={cn("p-6 rounded-[1.25rem] relative transition-all duration-300", isAI ? "bg-white/70 backdrop-blur-2xl galactic-shadow ghost-border" : "bg-surface-container-low")}>
+      <div className={cn("flex flex-col gap-2 transition-all duration-300 w-fit", isAI ? "max-w-[92%] mr-auto" : "max-w-[85%] ml-auto items-end")}>
+        <div className={cn("p-6 rounded-[1.25rem] relative shadow-sm transition-all duration-300", isAI ? "bg-white/70 backdrop-blur-2xl galactic-shadow ghost-border" : "bg-surface-container-low/80 backdrop-blur-md border border-border/5")}>
           {isAI && message.status && (
              <div className={cn("absolute -top-3 left-6 px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest flex items-center gap-1.5", message.status === "secure" ? "bg-tertiary/10 text-tertiary" : "bg-destructive/10 text-destructive")}>
                <Activity className="w-3 h-3 animate-pulse" /> {message.status} MONITORING ACTIVE
