@@ -1,118 +1,144 @@
 'use client';
 
-import * as React from 'react';
-import { LayoutWrapper } from '@/components/layout-wrapper';
-import { ChatLayout } from '@/components/chat-layout';
-import { ChatInput } from '@/components/chat-input';
-import { type Message } from '@/components/message-item';
-import { useScan } from '@/hooks/use-scan';
+import * as React from "react";
+import { LayoutWrapper } from "@/components/layout-wrapper";
+import { ChatLayout } from "@/components/chat-layout";
+import { ChatInput } from "@/components/chat-input";
+import { type Message } from "@/components/message-item";
+import { useAuth } from "@/contexts/auth-context";
+import { useRouter } from "next/navigation";
+import { fetchApi } from "@/lib/api";
+import { toast } from "sonner";
 
 export default function Home() {
-  // ── Chat history shown in the UI ───────────────────────────────────────────
-  const [uiMessages, setUiMessages] = React.useState<Message[]>([]);
+  const [messages, setMessages] = React.useState<Message[]>([]);
+  const [isTyping, setIsTyping] = React.useState(false);
 
-  // ── WebSocket hook — real-time streaming ───────────────────────────────────
-  const { messages: streamMessages, isScanning, startScan } = useScan();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const router = useRouter();
 
-  // ── Initial greeting message ───────────────────────────────────────────────
   React.useEffect(() => {
-    setUiMessages([
-      {
-        id: '1',
-        role: 'assistant',
-        content:
-          'LUMINOUS_GUARDIAN_INITIALIZED: Digital realm integrity check complete. I am your specialized security analyst and protector.\nI am now monitoring your systems. You can ask me to run a scan or explain technical risks at any time.',
-        timestamp: new Date().toLocaleTimeString('en-US', {
-          hour12: false,
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-        }),
-        status: 'secure',
-      },
-    ]);
-  }, []);
-
-  // ── Convert stream messages → UI messages ─────────────────────────────────
-  // We accumulate all streaming events into a single live assistant message.
-  // When scan is complete the message is already built up token by token.
-  React.useEffect(() => {
-    if (streamMessages.length === 0) return;
-
-    const ts = new Date().toLocaleTimeString('en-US', {
-      hour12: false,
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    });
-
-    // Build a live assistant message from the stream
-    // status → shown as italic prefix lines
-    // tool   → shown in a monospace block
-    // ai     → the main AI response text
-    // error  → shown as warning
-
-    let statusText = '';
-    let toolText = '';
-    let aiText = '';
-    let hasError = false;
-    let errorText = '';
-
-    for (const msg of streamMessages) {
-      if (msg.type === 'status') statusText += msg.text + '\n';
-      if (msg.type === 'tool')   toolText += msg.text;
-      if (msg.type === 'ai')     aiText += msg.text;
-      if (msg.type === 'error') { hasError = true; errorText += msg.text; }
+    if (!authLoading && !isAuthenticated) {
+      router.replace("/login");
     }
+  }, [isAuthenticated, authLoading, router]);
 
-    // Assemble into one formatted content string
-    let content = '';
-    if (statusText) content += `_${statusText.trim()}_\n\n`;
-    if (toolText)   content += `\`\`\`\n${toolText.trim()}\n\`\`\`\n\n`;
-    if (aiText)     content += aiText;
-    if (hasError)   content = `ALERT: ${errorText}`;
+  React.useEffect(() => {
+    if (!isAuthenticated) return;
 
-    if (!content) return;
+    const loadHistory = async () => {
+      try {
+        const history = await fetchApi<any[]>("/chat/history");
+        if (history && history.length > 0) {
+          const formattedHistory: Message[] = history.map((msg: any) => ({
+            id: msg._id,
+            role: msg.role,
+            content: msg.message,
+            timestamp: new Date(msg.createdAt).toLocaleTimeString("en-US", {
+              hour12: false,
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+            status: msg.role === "assistant" ? "secure" : undefined,
+          }));
+          setMessages(formattedHistory);
+        } else {
+          const initialMessage: Message = {
+            id: "1",
+            role: "assistant",
+            content:
+              "LUMINOUS_GUARDIAN_INITIALIZED: Digital realm integrity check complete. I am your specialized security analyst and protector.\nI am now monitoring your systems. You can ask me to run a scan or explain technical risks at any time.",
+            timestamp: new Date().toLocaleTimeString("en-US", {
+              hour12: false,
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+            status: "secure",
+          };
+          setMessages([initialMessage]);
+        }
+      } catch (error) {
+        toast.error("Failed to load chat history");
+        const initialMessage: Message = {
+            id: "1",
+            role: "assistant",
+            content:
+              "LUMINOUS_GUARDIAN_INITIALIZED...",
+            timestamp: new Date().toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit"}),
+            status: "secure",
+        };
+        setMessages([initialMessage]);
+      }
+    };
+    
+    loadHistory();
+  }, [isAuthenticated]);
 
-    // Replace or create the live streaming message (always id='stream-live')
-    setUiMessages((prev) => {
-      const withoutLive = prev.filter((m) => m.id !== 'stream-live');
-      return [
-        ...withoutLive,
-        {
-          id: 'stream-live',
-          role: 'assistant',
-          content,
-          timestamp: ts,
-          status: hasError ? 'warning' : 'secure',
-        },
-      ];
-    });
-  }, [streamMessages]);
+  const handleSendMessage = async (content: string) => {
+    if (!content.trim()) return;
 
-  // ── User sends a message ──────────────────────────────────────────────────
-  const handleSendMessage = (content: string) => {
-    const ts = new Date().toLocaleTimeString('en-US', {
-      hour12: false,
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    });
+    const tempId = Date.now().toString();
+    const userMessage: Message = {
+      id: tempId,
+      role: "user",
+      content,
+      timestamp: new Date().toLocaleTimeString("en-US", {
+        hour12: false,
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    };
 
-    // Add user message immediately
-    setUiMessages((prev) => [
-      ...prev,
-      {
-        id: Date.now().toString(),
-        role: 'user',
-        content,
-        timestamp: ts,
-      },
-    ]);
+    setMessages((prev) => [...prev, userMessage]);
+    setIsTyping(true);
 
-    // Fire the WebSocket scan — streaming events will update uiMessages above
-    startScan(content);
+    try {
+      // Connect to the authenticated backend chat
+      const data = await fetchApi<{ response: string }>("/chat/message", {
+        method: "POST",
+        body: JSON.stringify({ message: content }),
+      });
+
+      if (data.response === "Groq Brain Offline: Please check your API key.") {
+        throw new Error("Luminous Guardian Brain is temporarily offline.");
+      }
+
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: data.response || "No data received from Guardian.",
+        timestamp: new Date().toLocaleTimeString("en-US", {
+          hour12: false,
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        status: "secure",
+      };
+
+      setMessages((prev) => [...prev, assistantMessage]);
+    } catch (error: any) {
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: `ALERT: ${error.message || "System communication failure."}`,
+        timestamp: new Date().toLocaleTimeString("en-US", {
+          hour12: false,
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        status: "warning",
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+      toast.error("Message Error", { description: error.message });
+    } finally {
+      setIsTyping(false);
+    }
   };
+
+  if (authLoading || !isAuthenticated) {
+    return <div className="flex h-screen w-full items-center justify-center">Initializing tactical interface...</div>;
+  }
+
 
   return (
     <LayoutWrapper>
