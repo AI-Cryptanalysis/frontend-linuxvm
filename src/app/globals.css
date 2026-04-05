@@ -4,7 +4,7 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: var(--font-manrope);
+  --font-sans: var(--font-inter);
   --font-display: var(--font-space-grotesk);
 
   --color-background: var(--background);

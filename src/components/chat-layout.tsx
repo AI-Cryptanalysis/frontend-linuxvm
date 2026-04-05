@@ -18,14 +18,31 @@ export function ChatLayout({ messages, isTyping }: { messages: Message[], isTypi
     /* Use h-full and min-h-0 to ensure ScrollArea fills the space but respects its container for scrolling */
     <ScrollArea className="flex-1 w-full bg-surface min-h-0 overflow-hidden">
       <div className="max-w-4xl mx-auto py-10 px-8 flex flex-col pb-32">
-        {/* Optimized Header Space: Reduced margins even further */}
-        <div className="mb-12 mt-2 pl-4 lg:pl-[8.5rem]">
-          <h1 className="font-display text-4xl lg:text-6xl font-bold text-foreground leading-[1.1] tracking-tight">
-            Spectral<br />Intelligence<br />Interface
+        {/* Optimized Header Space: High-end Editorial UI */}
+        <div className="mb-14 mt-4 pl-4 lg:pl-[8.5rem] relative animate-in fade-in slide-in-from-bottom-8 duration-1000">
+          
+          {/* Status Badge */}
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-6">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary pulse-dot" />
+            <span className="text-[10px] font-sans font-bold uppercase tracking-widest text-primary drop-shadow-[0_0_8px_rgba(83,8,231,0.5)]">System Online</span>
+          </div>
+
+          <h1 className="font-display text-5xl lg:text-7xl font-extrabold text-foreground leading-[0.95] tracking-tighter uppercase relative z-10">
+            ASPIS<br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary drop-shadow-lg inline-block mt-2">Intelligence</span><br />
+            <span className="text-muted-foreground/30 font-light tracking-tight inline-block mt-2">Core</span>
           </h1>
-          <p className="mt-4 font-sans text-sm lg:text-base text-muted-foreground max-w-sm leading-relaxed opacity-60">
-            Neural connectivity stabilized. Monitoring high-energy security signatures.
-          </p>
+
+          <div className="mt-8 flex items-start gap-4 max-w-md">
+            <div className="w-1 min-h-[3.5rem] bg-gradient-to-b from-primary/50 to-transparent rounded-full flex-shrink-0" />
+            <p className="font-sans text-sm lg:text-base text-muted-foreground leading-relaxed">
+              <strong className="text-foreground inline-block mb-1 font-semibold text-xs tracking-widest uppercase">ASPIS Operator IA initialized.</strong><br/>
+              Monitoring global network topology for high-level tactical threats. Ready for neural command.
+            </p>
+          </div>
+          
+          {/* Ambient Background Glow */}
+          <div className="absolute top-10 left-[-4rem] lg:left-[4.5rem] w-64 h-64 bg-primary/10 rounded-full blur-[80px] -z-10 pointer-events-none" />
         </div>
 
         {/* Message Container */}
@@ -41,7 +58,7 @@ export function ChatLayout({ messages, isTyping }: { messages: Message[], isTypi
                </div>
                <div className="bg-white/50 backdrop-blur-md p-6 rounded-[1.25rem] text-muted-foreground text-sm font-sans italic flex items-center gap-3 border border-white/10">
                  <div className="w-24 h-2 bg-muted-foreground/10 rounded animate-pulse" />
-                 Luminous Guardian is synthesizing response...
+                 ASPIS is synthesizing response...
                </div>
             </div>
           )}

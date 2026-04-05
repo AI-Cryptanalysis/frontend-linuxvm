@@ -21,7 +21,7 @@ export default function Home() {
         id: '1',
         role: 'assistant',
         content:
-          'LUMINOUS_GUARDIAN_INITIALIZED: Digital realm integrity check complete. I am your specialized security analyst and protector.\nI am now monitoring your systems. You can ask me to run a scan or explain technical risks at any time.',
+          'ASPIS_INITIALIZED: Digital realm integrity check complete. I am your specialized security analyst and protector.\nI am now monitoring your systems. You can ask me to run a scan or explain technical risks at any time.',
         timestamp: new Date().toLocaleTimeString('en-US', {
           hour12: false,
           hour: '2-digit',

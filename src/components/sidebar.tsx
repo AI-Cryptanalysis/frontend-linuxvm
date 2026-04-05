@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import { 
   Shield, 
   LayoutDashboard, 
@@ -47,12 +48,12 @@ export function Sidebar({ collapsed, setCollapsed }: { collapsed: boolean; setCo
       )}
     >
       <div className="p-6 flex items-center gap-3 flex-shrink-0">
-        <div className="w-10 h-10 btn-luminous rounded-lg flex items-center justify-center shadow-lg shadow-primary/20">
-          <Shield className="text-white w-6 h-6" />
+        <div className="w-10 h-10 rounded-lg flex items-center justify-center shadow-lg shadow-primary/20 overflow-hidden">
+          <Image src="/logo.png" alt="ASPIS" width={40} height={40} className="w-full h-full object-contain" />
         </div>
         {!collapsed && (
           <span className="font-display text-xl font-bold tracking-tight text-foreground">
-            Luminous<span className="text-primary font-light">Guardian</span>
+            ASPIS
           </span>
         )}
       </div>

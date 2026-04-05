@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * use-scan.ts — Luminous Guardian real-time WebSocket hook
+ * use-scan.ts — ASPIS real-time WebSocket hook
  * Uses dynamic import to ensure socket.io-client only runs in the browser.
  */
 
@@ -67,18 +67,18 @@ export function useScan() {
 
       socket.on('connect', () => {
         setStatus('connected');
-        console.log('[Guardian WS] Connected ✔', socket.id);
+        console.log('[ASPIS WS] Connected ✔', socket.id);
       });
 
       socket.on('disconnect', (reason: string) => {
         setStatus('disconnected');
-        console.warn('[Guardian WS] Disconnected:', reason);
+        console.warn('[ASPIS WS] Disconnected:', reason);
         setIsScanning(false);
       });
 
       socket.on('connect_error', (err: Error) => {
         setStatus('disconnected');
-        console.error('[Guardian WS] connect_error:', err.message);
+        console.error('[ASPIS WS] connect_error:', err.message);
         push('error', `Connection failed: ${err.message}`);
         setIsScanning(false);
       });

@@ -68,7 +68,7 @@ export function ChatInput({ onSend, disabled }: { onSend: (content: string) => v
       <div className="mt-4 flex justify-center items-center gap-8 text-[10px] font-sans font-bold uppercase tracking-widest text-muted-foreground/30">
         <span className="flex items-center gap-2 italic">Aetheric core status: stable</span>
         <span className="w-1.5 h-1.5 rounded-full bg-primary/20" />
-        <span className="flex items-center gap-2">Protocol: Luminous_Guardian_v4.5</span>
+        <span className="flex items-center gap-2">Protocol: ASPIS_v4.5</span>
       </div>
     </div>
   );

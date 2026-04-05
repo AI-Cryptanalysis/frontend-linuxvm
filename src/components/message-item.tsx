@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 import { ShieldCheck, AlertTriangle, User, Activity, Flame, ShieldAlert, Terminal as TerminalIcon } from "lucide-react";
 
 export type Message = {
@@ -17,7 +18,7 @@ export function MessageItem({ message }: { message: Message }) {
 
   // Helper to parse tactical sections
   const renderContent = (content: string) => {
-    if (!isAI) return <p className="font-sans text-base leading-relaxed">{content}</p>;
+    if (!isAI) return <p className="font-sans text-[15px] font-medium leading-relaxed text-foreground/90">{content}</p>;
 
     // 1. Process block elements first (Log blocks from tool output)
     const blockParts = content.split(/(```[\s\S]*?```)/g);
@@ -115,7 +116,7 @@ export function MessageItem({ message }: { message: Message }) {
                   </div>
                 );
               }
-              return <span key={lineIndex} className="opacity-80 block mb-2">{line}</span>;
+              return <span key={lineIndex} className="text-[15px] font-medium text-foreground/90 block mb-2 leading-relaxed tracking-wide">{line}</span>;
             })}
           </React.Fragment>
         );
@@ -127,8 +128,8 @@ export function MessageItem({ message }: { message: Message }) {
     <div className={cn("flex w-full gap-5 mb-10 transition-all duration-500 animate-in fade-in", isAI ? "justify-start" : "justify-end pr-8")}>
       {isAI && (
         <div className="flex-shrink-0 mt-1">
-          <div className="w-10 h-10 rounded-2xl btn-luminous flex items-center justify-center galactic-shadow">
-            <ShieldCheck className="w-6 h-6 text-white" />
+          <div className="w-10 h-10 rounded-2xl flex items-center justify-center galactic-shadow shadow-lg shadow-primary/20 overflow-hidden bg-black/5">
+            <Image src="/logo.png" alt="ASPIS" width={40} height={40} className="w-full h-full object-contain" />
           </div>
         </div>
       )}
@@ -143,7 +144,7 @@ export function MessageItem({ message }: { message: Message }) {
           {renderContent(message.content)}
         </div>
         <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground opacity-30 px-2">
-          {message.timestamp} — {isAI ? "GUARDIAN_OPS_V2" : "OPERATOR_01"}
+          {message.timestamp} — {isAI ? "ASPIS_OPS_V2" : "OPERATOR_01"}
         </div>
       </div>
     </div>
