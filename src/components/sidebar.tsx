@@ -12,11 +12,13 @@ import {
   Terminal,
   Grid,
   Plus,
-  Clock
+  Clock,
+  LogOut
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { useAuth } from "@/contexts/auth-context";
 
 const SIDEBAR_ITEMS = [
   { icon: LayoutDashboard, label: "Neural Overview", active: true },
@@ -39,6 +41,7 @@ const SECONDARY_ITEMS = [
 ];
 
 export function Sidebar({ collapsed, setCollapsed }: { collapsed: boolean; setCollapsed: (val: boolean) => void }) {
+  const { logout } = useAuth();
   return (
     <aside
       className={cn(
@@ -133,6 +136,19 @@ export function Sidebar({ collapsed, setCollapsed }: { collapsed: boolean; setCo
           </button>
         ))}
       </nav>
+
+      <div className="p-4 mt-auto border-t border-border/5">
+        <button
+          onClick={() => logout()}
+          className={cn(
+            "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group",
+            "text-destructive/80 hover:bg-destructive/10 hover:text-destructive"
+          )}
+        >
+          <LogOut className="w-5 h-5" />
+          {!collapsed && <span className="font-sans font-medium text-sm">Logout</span>}
+        </button>
+      </div>
 
       <Button
         variant="ghost"
