@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Search, Bell, User, Maximize2, Menu } from "lucide-react";
+import { Search, Bell, User, Maximize2, Menu, LogOut } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -11,7 +12,47 @@ interface HeaderProps {
   onMenuClick?: () => void;
 }
 
+export interface JWTPayload {
+  username: string;
+  userId: string;
+  iat: number;
+  exp: number;
+}
+
 export function Header({ onMenuClick }: HeaderProps) {
+  const router = useRouter();
+  const [username, setUsername] = React.useState("Guest_Agent");
+
+  React.useEffect(() => {
+    try {
+      const token = localStorage.getItem("access_token");
+      if (token) {
+        const base64Url = token.split(".")[1];
+        const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+        const jsonPayload = decodeURIComponent(
+          window.atob(base64)
+            .split("")
+            .map(function (c) {
+              return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
+            })
+            .join("")
+        );
+        const decoded = JSON.parse(jsonPayload) as JWTPayload;
+        if (decoded.username) {
+          const formattedName = decoded.username.split('@')[0];
+          setUsername(formattedName.charAt(0).toUpperCase() + formattedName.slice(1));
+        }
+      }
+    } catch (e) {
+      console.warn("Could not decode identity token", e);
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("access_token");
+    router.push("/login");
+  };
+
   return (
     <header className="h-20 bg-surface/60 backdrop-blur-xl border-b border-border/5 flex items-center justify-between px-8 sticky top-0 z-40">
       <div className="flex items-center gap-8 flex-1">
@@ -48,13 +89,26 @@ export function Header({ onMenuClick }: HeaderProps) {
           
           <div className="flex items-center gap-3 pl-2 group cursor-pointer">
             <div className="flex flex-col items-end justify-center hidden sm:flex">
-              <span className="text-sm font-sans font-bold text-foreground group-hover:text-primary transition-colors">Admin_Nova</span>
+              <span className="text-sm font-sans font-bold text-foreground group-hover:text-primary transition-colors">{username}</span>
               <SecurityPulse label="SECURE" className="h-5 px-2 bg-primary/5 border-none" />
             </div>
             <Avatar className="w-10 h-10 rounded-2xl border-2 border-surface-container-high galactic-shadow group-hover:scale-105 transition-transform duration-300">
-              <AvatarImage src="https://github.com/shadcn.png" />
+              <AvatarImage src="https://github.com/shadcn.png" alt="Profile" />
               <AvatarFallback><User className="w-5 h-5" /></AvatarFallback>
             </Avatar>
+            
+            <div className="w-[1.5px] h-8 bg-border/10 mx-2 hidden sm:block" />
+            
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={handleLogout}
+              className="w-10 h-10 rounded-xl hover:bg-red-500/10 hover:text-red-500 text-muted-foreground transition-all"
+              title="Logout Securely"
+              aria-label="Logout"
+            >
+              <LogOut className="w-5 h-5" />
+            </Button>
           </div>
         </div>
       </div>

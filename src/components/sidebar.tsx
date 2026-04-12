@@ -12,11 +12,21 @@ import {
   Terminal,
   Grid,
   Plus,
-  Clock
+  Clock,
+  Trash2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { useSearchParams } from "next/navigation";
+
+export interface ChatSession {
+  _id: string;
+  userId: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 const SIDEBAR_ITEMS = [
   { icon: LayoutDashboard, label: "Neural Overview", active: true },
@@ -26,19 +36,74 @@ const SIDEBAR_ITEMS = [
   { icon: Terminal, label: "Command Core" },
 ];
 
-const RECENT_CHATS = [
-  { id: "1", title: "Spectral Analysis #42", time: "2h ago" },
-  { id: "2", title: "Neural Link Calibration", time: "5h ago" },
-  { id: "3", title: "Aether Flux Debugging", time: "Yesterday" },
-  { id: "4", title: "Ghost Protocol Audit", time: "Mar 28" },
-];
-
 const SECONDARY_ITEMS = [
   { icon: Settings, label: "Neural Config" },
   { icon: Shield, label: "Security Vault" },
 ];
 
 export function Sidebar({ collapsed, setCollapsed }: { collapsed: boolean; setCollapsed: (val: boolean) => void }) {
+  const [sessions, setSessions] = React.useState<ChatSession[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const searchParams = useSearchParams();
+  const activeSession = searchParams.get('session');
+
+  const fetchSessions = React.useCallback(async () => {
+    try {
+      const token = localStorage.getItem("access_token");
+      if (!token) {
+        console.warn("[Sidebar] No access token found in localStorage");
+        setIsLoading(false);
+        return;
+      }
+      
+      const res = await fetch("http://localhost:5070/chat/sessions", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      if (!res.ok) {
+        console.error(`[Sidebar] API Error: ${res.status} ${res.statusText}`);
+        setIsLoading(false);
+        return;
+      }
+
+      const data = await res.json();
+      console.log(`[Sidebar] Fetched ${data?.length || 0} sessions from backend`);
+      
+      if (Array.isArray(data)) {
+        setSessions(data as ChatSession[]);
+      }
+    } catch (e) {
+      console.error("[Sidebar] Fetch failed", e);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    fetchSessions();
+  }, [fetchSessions, searchParams]);
+
+  const handleDeleteSession = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (!confirm("Are you sure you want to delete this intelligence report?")) return;
+
+    try {
+      const token = localStorage.getItem("access_token");
+      const res = await fetch(`http://localhost:5070/chat/sessions/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setSessions((prev: ChatSession[]) => prev.filter((s: ChatSession) => s._id !== id));
+        if (activeSession === id) {
+          window.location.href = "/";
+        }
+      }
+    } catch (e) {
+      console.error("Failed to delete session", e);
+    }
+  };
+
   return (
     <aside
       className={cn(
@@ -59,6 +124,7 @@ export function Sidebar({ collapsed, setCollapsed }: { collapsed: boolean; setCo
 
       <div className="px-5 mb-4 flex-shrink-0">
         <Button 
+          onClick={() => window.location.href = "/"}
           className={cn(
             "w-full btn-luminous rounded-2xl h-14 flex items-center justify-center gap-3 text-white font-bold tracking-widest text-xs galactic-shadow transition-all duration-500 hover:scale-[1.02] active:scale-[0.98]",
             collapsed ? "w-10 h-10 px-0 rounded-xl mx-auto" : "px-6"
@@ -105,15 +171,38 @@ export function Sidebar({ collapsed, setCollapsed }: { collapsed: boolean; setCo
               <span className="text-[10px] font-sans font-bold uppercase tracking-widest text-muted-foreground">Recent Intelligence</span>
             </div>
             <div className="space-y-1">
-              {RECENT_CHATS.map((chat) => (
-                <button
-                  key={chat.id}
-                  className="w-full text-left px-3 py-2 rounded-lg text-xs font-sans text-muted-foreground hover:bg-surface-container-high hover:text-foreground transition-all duration-300 truncate group"
-                >
-                  <span className="opacity-0 group-hover:opacity-100 transition-opacity mr-2 text-primary">›</span>
-                  {chat.title}
-                </button>
-              ))}
+              {isLoading ? (
+                <div className="px-3 py-2 text-xs text-muted-foreground animate-pulse">Synchronizing neural links...</div>
+              ) : sessions.length === 0 ? (
+                <div className="px-3 py-2 text-[10px] text-muted-foreground italic opacity-50">No recent intelligence found</div>
+              ) : (
+                sessions.map((chat) => (
+                  <div key={chat._id} className="group flex items-center relative">
+                    <button
+                      onClick={() => window.location.href = `/?session=${chat._id}`}
+                      className={cn(
+                        "flex-1 text-left px-3 py-2 rounded-lg text-xs font-sans transition-all duration-300 truncate border border-transparent flex items-center",
+                        activeSession === chat._id 
+                          ? "bg-surface-container-high text-foreground border-white/5 shadow-sm"
+                          : "text-muted-foreground hover:bg-surface-container-high hover:text-foreground"
+                      )}
+                    >
+                      <span className={cn(
+                        "mr-2 text-primary transition-opacity",
+                        activeSession === chat._id ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                      )}>›</span>
+                      <span className="truncate">{chat.title}</span>
+                    </button>
+                    <button
+                      onClick={(e) => handleDeleteSession(e, chat._id)}
+                      className="absolute right-2 opacity-0 group-hover:opacity-100 p-1.5 hover:bg-red-500/10 text-muted-foreground hover:text-red-500 rounded-md transition-all duration-200"
+                      title="Delete Intelligence Report"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         )}

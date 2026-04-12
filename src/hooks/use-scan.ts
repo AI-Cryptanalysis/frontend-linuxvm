@@ -19,6 +19,13 @@ export interface ScanMessage {
   timestamp: string;
 }
 
+export interface BackendChatMessage {
+  _id: string;
+  role: 'user' | 'assistant';
+  message: string;
+  createdAt: string;
+}
+
 export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected';
 
 // ─── Config ───────────────────────────────────────────────────────────────────
@@ -42,6 +49,7 @@ export function useScan() {
   const socketRef = useRef<any>(null);
 
   // States
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ScanMessage[]>([]);
   const [chatMessages, setChatMessages] = useState<Message[]>([
     {
@@ -57,18 +65,48 @@ export function useScan() {
   const [isScanning, setIsScanning] = useState(false);
   const [fullReport, setFullReport] = useState<string>('');
 
+  // ─── Initialize Session from URL ───────────────────────────────────────────
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const session = params.get('session');
+      if (session) {
+        setSessionId(session);
+        const token = localStorage.getItem('access_token');
+        if (token) {
+          fetch(`${BACKEND_URL}/chat/sessions/${session}/history`, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+            .then(r => r.json())
+            .then((data: BackendChatMessage[]) => {
+              if (Array.isArray(data) && data.length > 0) {
+                const history = data.map((m: BackendChatMessage) => ({
+                  id: m._id,
+                  role: m.role,
+                  content: m.message,
+                  timestamp: new Date(m.createdAt).toLocaleTimeString('en-US', {
+                    hour12: false, hour: '2-digit', minute: '2-digit'
+                  }),
+                  status: 'secure' as const
+                }));
+                setChatMessages(history);
+              }
+            })
+            .catch(console.error);
+        }
+      }
+    }
+  }, []);
+
   // ─── Direct UI Sync ────────────────────────────────────────────────────────
-  // This helper generates the UI message content from the raw stream array.
   const getContentFromStream = (stream: ScanMessage[]) => {
     const statusText = stream.filter(m => m.type === 'status').map(m => m.text).join('\n');
     const toolText = stream.filter(m => m.type === 'tool').map(m => m.text).join('');
     let aiText = stream.filter(m => m.type === 'ai').map(m => m.text).join('');
     const errorText = stream.filter(m => m.type === 'error').map(m => m.text).join('\n');
 
-    // 1. Remove status noise
     aiText = aiText.replace(/🤖.*?📝.*?\.\.\./g, '').trim();
 
-    // 2. Strict preamble filter: Truncate if intro matches
     const preambleSigs = [
         "Hello. I'm ASPIS",
         "Hello. As a Senior",
@@ -76,7 +114,6 @@ export function useScan() {
         "How can I assist you today?"
     ];
     
-    // If it's pure preamble, just hide it until real content appears
     const bodyContent = aiText.split(/\.|\?/).filter(s => {
         const clean = s.trim();
         return !preambleSigs.some(sig => clean.includes(sig)) && clean.length > 5;
@@ -95,8 +132,8 @@ export function useScan() {
     const { content, isError } = getContentFromStream(updatedStream);
     if (!content) return;
 
-    setChatMessages((prev) => {
-      const liveIndex = prev.findIndex((m) => m.id === 'stream-live');
+    setChatMessages((prev: Message[]) => {
+      const liveIndex = prev.findIndex((m: Message) => m.id === 'stream-live');
       
       const newMessage: Message = {
         id: 'stream-live',
@@ -117,7 +154,6 @@ export function useScan() {
   }, []);
 
   // ─── Socket Events ─────────────────────────────────────────────────────────
-
   useEffect(() => {
     let active = true;
 
@@ -138,9 +174,8 @@ export function useScan() {
         setIsScanning(false);
       });
 
-      // Unified Token Handler to prevent double state cycles
       const handleIncomingData = (type: ScanMessageType, data: string, append = true) => {
-        setMessages((prev) => {
+        setMessages((prev: ScanMessage[]) => {
           let next: ScanMessage[];
           const last = prev[prev.length - 1];
           
@@ -150,7 +185,6 @@ export function useScan() {
             next = [...prev, { id: `${Date.now()}-${Math.random()}`, type, text: data, timestamp: getNowTimestamp() }];
           }
           
-          // Sync chat UI in the same turn
           syncChatFromStream(next);
           return next;
         });
@@ -163,6 +197,13 @@ export function useScan() {
       socket.on('scan:complete', ({ data }: { data: string }) => {
         setFullReport(data);
         setIsScanning(false);
+      });
+
+      socket.on('scan:session_created', ({ data }: { data: string }) => {
+        setSessionId(data);
+        if (typeof window !== 'undefined') {
+          window.history.pushState({}, '', `/?session=${data}`);
+        }
       });
 
       socket.on('scan:error', ({ data }: { data: string }) => {
@@ -181,31 +222,34 @@ export function useScan() {
   }, [syncChatFromStream]);
 
   // ─── API ───────────────────────────────────────────────────────────────────
-
   const startScan = useCallback((prompt: string) => {
     if (!socketRef.current || isScanning || !prompt.trim()) return;
     setIsScanning(true);
     setFullReport('');
-    setMessages([]); // Reset stream for the new scan
-    socketRef.current.emit('start_scan', { prompt });
-  }, [isScanning]);
+    setMessages([]); 
+    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+    
+    socketRef.current.emit('start_scan', { 
+      prompt,
+      sessionId,
+      token
+    });
+  }, [isScanning, sessionId]);
 
   const clearMessages = useCallback(() => {
     setMessages([]);
-    setChatMessages((prev) => [prev[0]]);
+    setChatMessages((prev: Message[]) => [prev[0]]);
     setFullReport('');
   }, []);
 
   const pushUserMessage = useCallback((content: string) => {
-    setChatMessages((prev) => {
-      // 1. Finalize any stray live message first
-      const liveIndex = prev.findIndex((m) => m.id === 'stream-live');
+    setChatMessages((prev: Message[]) => {
+      const liveIndex = prev.findIndex((m: Message) => m.id === 'stream-live');
       let next = [...prev];
       if (liveIndex !== -1) {
         next[liveIndex] = { ...next[liveIndex], id: `scan-${Date.now()}` };
       }
 
-      // 2. Add user message
       const userMsg: Message = {
         id: `${Date.now()}-user`,
         role: 'user',
@@ -216,7 +260,6 @@ export function useScan() {
       return [...next, userMsg];
     });
     
-    // 3. Start the scan
     startScan(content);
   }, [startScan]);
 
